@@ -1,5 +1,6 @@
 import pathlib
 
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QDir, Qt
 from PyQt5.QtGui import QImage, QPainter, QPalette, QPixmap
 from PyQt5.QtWidgets import (QAction, QApplication, QFileDialog, QLabel,
@@ -23,6 +24,8 @@ class ImageViewer(QMainWindow):
         self.original_image = None
         self.images = []
         self.img_index = 0
+        self.bboxes = []
+        self.texts = []
 
 
         self.scrollArea = self.ui.scrollArea
@@ -71,6 +74,10 @@ class ImageViewer(QMainWindow):
             QMessageBox.information(self, "Image Viewer",
                     "Cannot load %s." % fileName)
             return
+
+        data = (2,30,80,30,80,70,2,70,"Mahir")
+        w = data[2] - data[0]
+        h = data[5] - data[1]
 
         self.original_image = image
         self.imageLabel.setPixmap(QPixmap.fromImage(image))
@@ -202,6 +209,72 @@ class ImageViewer(QMainWindow):
     def adjustScrollBar(self, scrollBar, factor):
         scrollBar.setValue(int(factor * scrollBar.value()
                                 + ((factor - 1) * scrollBar.pageStep()/2)))
+
+class ResizableRubberBand(QtWidgets.QWidget):
+    def __init__(self, parent=None, ):
+        super(ResizableRubberBand, self).__init__(parent)
+
+        self.draggable = True
+        self.dragging_threshold = 5
+        self.mousePressPos = None
+        self.mouseMovePos = None
+        self.borderRadius = 5
+
+        self.setWindowFlags(QtCore.Qt.SubWindow)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(
+            QtWidgets.QSizeGrip(self), 0,
+            QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        layout.addWidget(
+            QtWidgets.QSizeGrip(self), 0,
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignBottom)
+        self._band = QtWidgets.QRubberBand(
+            QtWidgets.QRubberBand.Rectangle, self)
+        self._band.show()
+        self.show()
+
+    def resizeEvent(self, event):
+        self._band.resize(self.size())
+
+    def paintEvent(self, event):
+        # Get current window size
+        window_size = self.size()
+        qp = QtWidgets.QPainter()
+        qp.begin(self)
+        qp.setRenderHint(QtWidgets.QPainter.Antialiasing, True)
+        qp.drawRoundedRect(0, 0, window_size.width(), window_size.height(),
+                           self.borderRadius, self.borderRadius)
+        qp.end()
+
+    def mousePressEvent(self, event):
+        if self.draggable and event.button() == QtCore.Qt.RightButton:
+            self.mousePressPos = event.globalPos()                # global
+            self.mouseMovePos = event.globalPos() - self.pos()    # local
+        super(ResizableRubberBand, self).mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.draggable and event.buttons() & QtCore.Qt.RightButton:
+            globalPos = event.globalPos()
+            moved = globalPos - self.mousePressPos
+            if moved.manhattanLength() > self.dragging_threshold:
+                # Move when user drag window more than dragging_threshold
+                diff = globalPos - self.mouseMovePos
+                self.move(diff)
+                self.mouseMovePos = globalPos - self.pos()
+        super(ResizableRubberBand, self).mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.mousePressPos is not None:
+            if event.button() == QtCore.Qt.RightButton:
+                moved = event.globalPos() - self.mousePressPos
+                if moved.manhattanLength() > self.dragging_threshold:
+                    # Do not call click event or so on
+                    event.ignore()
+                self.mousePressPos = None
+        super(ResizableRubberBand, self).mouseReleaseEvent(event)
+
+
 
 
 if __name__ == '__main__':
