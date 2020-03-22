@@ -233,6 +233,11 @@ class AnnotationWindow(QtWidgets.QMainWindow):
         
         self.m_scene.load_image(fileName)
         data = (2,30,80,30,80,70,2,70,"Mahir")
+        poly_item = PolygonAnnotation()
+        self.m_scene.addItem(poly_item)
+        for i in range(4):
+            poly_item.addPoint(QtCore.QPointF(data[2*i],data[2*i+1]))
+        
         self.updateActions()
 
     def normalSize(self):
