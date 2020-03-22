@@ -11,7 +11,7 @@ from imageviewer_gw import Ui_MainWindow
 
 class GripItem(QtWidgets.QGraphicsPathItem):
     circle = QtGui.QPainterPath()
-    circle.addEllipse(QtCore.QRectF(-10, -10, 20, 20))
+    circle.addEllipse(QtCore.QRectF(-5, -5, 10, 10))
     square = QtGui.QPainterPath()
     square.addRect(QtCore.QRectF(-15, -15, 30, 30))
 
@@ -110,6 +110,23 @@ class PolygonAnnotation(QtWidgets.QGraphicsPolygonItem):
     def hoverLeaveEvent(self, event):
         self.setBrush(QtGui.QBrush(QtCore.Qt.NoBrush))
         super(PolygonAnnotation, self).hoverLeaveEvent(event)
+
+    def make_invisible(self):
+        for item in self.m_items:
+            item.setEnabled(False)
+            item.setVisible(False)
+        self.setVisible(False)
+
+    def make_visible(self):
+        for item in self.m_items:
+            item.setEnabled(True)
+            item.setVisible(True)
+        self.setVisible(True)
+
+    def make_ineditable(self):
+        for item in self.m_items:
+            item.setEnabled(False)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
 
 
 class Instructions(Enum):
@@ -237,7 +254,9 @@ class AnnotationWindow(QtWidgets.QMainWindow):
         self.m_scene.addItem(poly_item)
         for i in range(4):
             poly_item.addPoint(QtCore.QPointF(data[2*i],data[2*i+1]))
-        
+        poly_item.make_invisible()
+        poly_item.make_visible()
+        poly_item.make_ineditable()
         self.updateActions()
 
     def normalSize(self):
