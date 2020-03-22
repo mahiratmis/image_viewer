@@ -34,10 +34,9 @@ class ImageViewer(QMainWindow):
         self.createMenus()
         self.connect_buttons()
 
-        #self.setWindowTitle("Image Viewer")
-        #self.resize(500, 400)
 
-    def files_with_extension(self, path=".", patterns=("*.jpg", "*.JPG", "*.jpeg", "*.JPEG", "*.png", "*.PNG")):
+    def files_with_extension(self, path=".", patterns=("*.jpg", "*.JPG", 
+        "*.jpeg", "*.JPEG", "*.png", "*.PNG")):
         """ returns file list that satisfy pattern """
         files = []
         # define the path
@@ -48,23 +47,20 @@ class ImageViewer(QMainWindow):
 
 
     def open(self):
-
-#        fileName, _ = QFileDialog.getOpenFileName(self, "Open File",
-#                QDir.currentPath())
-
-        dirName = QFileDialog.getExistingDirectory(self, "Select Images Directory",
+        dirName = QFileDialog.getExistingDirectory(self, "Select Images Folder",
                 QDir.currentPath())
 
         if dirName:
             self.images = list(map(str, self.files_with_extension(dirName)))
-            print(self.images)
             if not self.images :
                 QMessageBox.information(self, "Directory Browser",
                         "No images under %s. " % dirName)
                 return
             
+            # populate QlistWidget and select the first row
             self.ui.listWidget_images.addItems(self.images)
             self.ui.listWidget_images.setCurrentRow(0)
+            # open the image and fill the label with image
             self.open_image(0)
             
     def open_image(self, idx):
@@ -188,12 +184,10 @@ class ImageViewer(QMainWindow):
     def next_image(self):
         if self.img_index < len(self.images)-1:
             self.ui.listWidget_images.setCurrentRow(self.img_index+1)
-            #self.open_image(self.img_index+1)
 
     def prev_image(self):
         if self.img_index > 0:
             self.ui.listWidget_images.setCurrentRow(self.img_index-1)
-            #self.open_image(self.img_index-1)
     
     def scaleImage(self, factor):
         self.scaleFactor *= factor
