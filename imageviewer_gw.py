@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'imageviewer_gw.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -65,12 +65,14 @@ class Ui_MainWindow(object):
         self.verticalLayout_6.addLayout(self.horizontalLayout_2)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
+        self.checkBox_poly = QtWidgets.QCheckBox(self.dockWidgetContents_10)
+        self.checkBox_poly.setChecked(True)
+        self.checkBox_poly.setObjectName("checkBox_poly")
+        self.horizontalLayout.addWidget(self.checkBox_poly)
         self.checkBox_text = QtWidgets.QCheckBox(self.dockWidgetContents_10)
+        self.checkBox_text.setChecked(True)
         self.checkBox_text.setObjectName("checkBox_text")
         self.horizontalLayout.addWidget(self.checkBox_text)
-        self.checkBox_bbox = QtWidgets.QCheckBox(self.dockWidgetContents_10)
-        self.checkBox_bbox.setObjectName("checkBox_bbox")
-        self.horizontalLayout.addWidget(self.checkBox_bbox)
         self.verticalLayout_6.addLayout(self.horizontalLayout)
         self.verticalLayout_7.addLayout(self.verticalLayout_6)
         self.dockWidget_10.setWidget(self.dockWidgetContents_10)
@@ -98,7 +100,7 @@ class Ui_MainWindow(object):
         self.pushButton_next.setText(_translate("MainWindow", "Next"))
         self.pushButton_zoomin.setText(_translate("MainWindow", "Zoom In"))
         self.pushButton_zoomout.setText(_translate("MainWindow", "Zoom Out"))
-        self.checkBox_text.setText(_translate("MainWindow", "Show Bbox"))
-        self.checkBox_bbox.setText(_translate("MainWindow", "Show Text"))
+        self.checkBox_poly.setText(_translate("MainWindow", "Show Poly"))
+        self.checkBox_text.setText(_translate("MainWindow", "Show Text"))
         self.dockWidget_11.setWindowTitle(_translate("MainWindow", "Image Files"))
 

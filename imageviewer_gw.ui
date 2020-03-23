@@ -100,16 +100,22 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <widget class="QCheckBox" name="checkBox_text">
+          <widget class="QCheckBox" name="checkBox_poly">
            <property name="text">
-            <string>Show Bbox</string>
+            <string>Show Poly</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_bbox">
+          <widget class="QCheckBox" name="checkBox_text">
            <property name="text">
             <string>Show Text</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>

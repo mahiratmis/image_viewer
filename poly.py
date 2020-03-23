@@ -128,6 +128,14 @@ class PolygonAnnotation(QtWidgets.QGraphicsPolygonItem):
             item.setEnabled(False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
 
+    def get_top_left_coord(self):
+        minx, miny = self.m_points[0].x(), self.m_points[0].y()
+        for point in self.m_points:
+            x, y = point.x(), point.y()
+            if x < minx and y < miny:
+                minx, miny = x, y
+        return (minx, miny)
+
 
 class Instructions(Enum):
     No_Instruction = 0
@@ -202,7 +210,7 @@ class AnnotationWindow(QtWidgets.QMainWindow):
 
         self.images = []
         self.img_index = 0
-        self.bboxes = []
+        self.polygons = []
         self.texts = []
 
         self.createActions()
@@ -249,15 +257,24 @@ class AnnotationWindow(QtWidgets.QMainWindow):
             return
         
         self.m_scene.load_image(fileName)
+        # add polygon
         data = (2,30,80,30,80,70,2,70,"Mahir")
-        poly_item = PolygonAnnotation()
+        poly_item = PolygonAnnotation()        
         self.m_scene.addItem(poly_item)
         for i in range(4):
             poly_item.addPoint(QtCore.QPointF(data[2*i],data[2*i+1]))
-        poly_item.make_invisible()
-        poly_item.make_visible()
         poly_item.make_ineditable()
+        self.polygons.append(poly_item)
+        
+        # add texts
+        text_item = self.m_scene.addText(data[8])
+        text_item.setPos(*poly_item.get_top_left_coord())
+        self.texts.append(text_item)
+
+        self.polygonsVisibility()
+        self.textVisibility()
         self.updateActions()
+
 
     def normalSize(self):
         self.m_view.zoom(1)
@@ -351,6 +368,24 @@ class AnnotationWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_next.clicked.connect(self.next_image)
         self.ui.listWidget_images.itemClicked.connect(self.imageSelected)
         self.ui.listWidget_images.itemSelectionChanged.connect(self.imageSelected)
+        self.ui.checkBox_poly.clicked.connect(self.polygonsVisibility)
+        self.ui.checkBox_text.clicked.connect(self.textVisibility)
+
+    def polygonsVisibility(self):
+        if self.ui.checkBox_poly.isChecked():
+            for poly in self.polygons:
+                poly.make_visible()
+        else:
+            for poly in self.polygons:
+                poly.make_invisible()
+
+    def textVisibility(self):
+        visible = self.ui.checkBox_text.isChecked()
+        for text in self.texts:
+            text.setVisible(visible)
+
+
+
 
     def imageSelected(self):
         self.img_index = self.ui.listWidget_images.currentRow()
