@@ -231,8 +231,9 @@ class AnnotationWindow(QtWidgets.QMainWindow):
         QtWidgets.QShortcut(QtCore.Qt.Key_Escape, self, activated=partial(self.m_scene.setCurrentInstruction, Instructions.No_Instruction))
 
     def ground_truth_dir(self):
-        dirName = QFileDialog.getExistingDirectory(self, "Select Images Folder",
-                QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.PicturesLocation))
+        dirName = QFileDialog.getExistingDirectory (self, "Select Images Folder",
+                QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.PicturesLocation),
+                QFileDialog.DontUseNativeDialog)
         if dirName:
             self.gt_dir = Path(dirName)
 
@@ -250,7 +251,8 @@ class AnnotationWindow(QtWidgets.QMainWindow):
     def open(self):
         """ Open the directory containing the images load first image and its annotations"""
         dirName = QFileDialog.getExistingDirectory(self, "Select Images Folder",
-                QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.PicturesLocation))
+                QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.PicturesLocation),
+                QFileDialog.DontUseNativeDialog)
 
         if dirName:
             self.img_dir = Path(dirName)
