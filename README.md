@@ -18,4 +18,4 @@ You can select any image from the listview to view corresponding ground truth
 You can apply zoom in and zoom out operations on images
 
 # TODO
-Currently new polygons can be added however, it needs to be saved. Its an easy task but currently not needed.
+Currently new polygons can be added. However, it needs to be saved. Its an easy task but currently not needed.
