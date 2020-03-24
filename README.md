@@ -19,3 +19,6 @@ You can apply zoom in and zoom out operations on images
 
 # TODO
 Currently new polygons can be added. However, it needs to be saved. Its an easy task but currently not needed.
+
+# Preview
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/3YULtXosjeM/0.jpg)](https://www.youtube.com/watch?v=3YULtXosjeM)
