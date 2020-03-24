@@ -1,6 +1,8 @@
-import pathlib
+from pathlib import Path
 from enum import Enum
 from functools import partial
+import pandas as pd
+
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import QDir, Qt
 from PyQt5.QtGui import QImage, QPainter, QPalette, QPixmap
@@ -135,6 +137,10 @@ class PolygonAnnotation(QtWidgets.QGraphicsPolygonItem):
             if x < minx and y < miny:
                 minx, miny = x, y
         return (minx, miny)
+    
+    def remove_points(self):
+        for item in self.m_items:
+            self.scene().removeItem(item)
 
 
 class Instructions(Enum):
@@ -149,6 +155,7 @@ class AnnotationScene(QtWidgets.QGraphicsScene):
         self.image_item.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
         self.addItem(self.image_item)
         self.current_instruction = Instructions.No_Instruction
+        self.added_polygons = []
 
     def load_image(self, filename):
         self.image_item.setPixmap(QtGui.QPixmap(filename))
@@ -158,6 +165,7 @@ class AnnotationScene(QtWidgets.QGraphicsScene):
         self.current_instruction = instruction
         self.polygon_item = PolygonAnnotation()
         self.addItem(self.polygon_item)
+        self.added_polygons.append(self.polygon_item)
 
     def mousePressEvent(self, event):
         if self.current_instruction == Instructions.Polygon_Instruction:
@@ -210,6 +218,9 @@ class AnnotationWindow(QtWidgets.QMainWindow):
 
         self.images = []
         self.img_index = 0
+        self.img_dir = None
+        self.gt_dir = None
+        self.gt = []
         self.polygons = []
         self.texts = []
 
@@ -219,22 +230,30 @@ class AnnotationWindow(QtWidgets.QMainWindow):
 
         QtWidgets.QShortcut(QtCore.Qt.Key_Escape, self, activated=partial(self.m_scene.setCurrentInstruction, Instructions.No_Instruction))
 
+    def ground_truth_dir(self):
+        dirName = QFileDialog.getExistingDirectory(self, "Select Images Folder",
+                QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.PicturesLocation))
+        if dirName:
+            self.gt_dir = Path(dirName)
+
     def files_with_extension(self, path=".", patterns=("*.jpg", "*.JPG", 
         "*.jpeg", "*.JPEG", "*.png", "*.PNG")):
         """ returns file list that satisfy pattern """
         files = []
         # define the path
-        path = pathlib.Path(path)
+        path = Path(path)
         for pattern in patterns:
             files.extend(list(sorted(path.glob(pattern))))
         return files           
 
     @QtCore.pyqtSlot()
     def open(self):
+        """ Open the directory containing the images load first image and its annotations"""
         dirName = QFileDialog.getExistingDirectory(self, "Select Images Folder",
                 QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.PicturesLocation))
 
         if dirName:
+            self.img_dir = Path(dirName)
             self.images = list(map(str, self.files_with_extension(dirName)))
             if not self.images :
                 QMessageBox.information(self, "Directory Browser",
@@ -244,10 +263,28 @@ class AnnotationWindow(QtWidgets.QMainWindow):
             # populate QlistWidget and select the first row
             self.ui.listWidget_images.addItems(self.images)
             self.ui.listWidget_images.setCurrentRow(0)
-            # open the image and fill the label with image
+            # open the image and fill the screen with image and annotation
             self.open_image(0)
-            
+    
+    def clear_scene(self):
+        """ Clear previously displayed polygons and texts from the scene"""
+        for poly in self.polygons:
+            poly.remove_points()
+            self.m_scene.removeItem(poly)
+        for text in self.texts:
+            self.m_scene.removeItem(text)
+        for poly in self.m_scene.added_polygons:
+            poly.remove_points()
+            self.m_scene.removeItem(poly)
+        
+        self.m_scene.added_polygons =[]
+        self.texts = []
+        self.polygons = []
+        
     def open_image(self, idx):
+        """ Load the image on to scene and the annotations it has """
+        self.clear_scene()
+        # load image
         self.img_index = idx
         fileName = self.images[idx]
         image = QImage(fileName)
@@ -257,51 +294,68 @@ class AnnotationWindow(QtWidgets.QMainWindow):
             return
         
         self.m_scene.load_image(fileName)
-        # add polygon
-        data = (2,30,80,30,80,70,2,70,"Mahir")
-        poly_item = PolygonAnnotation()        
-        self.m_scene.addItem(poly_item)
-        for i in range(4):
-            poly_item.addPoint(QtCore.QPointF(data[2*i],data[2*i+1]))
-        poly_item.make_ineditable()
-        self.polygons.append(poly_item)
-        
-        # add texts
-        text_item = self.m_scene.addText(data[8])
-        text_item.setPos(*poly_item.get_top_left_coord())
-        self.texts.append(text_item)
 
+        # load ground truth
+        if self.gt_dir:
+            image_path = Path(fileName)
+            gt_path = self.gt_dir / ("gt_" + image_path.stem + ".txt")
+            self.gt = self.read_icdar2015_gt(gt_path)
+
+            # add annotation
+            for data in self.gt:
+                # add polygon
+                poly_item = PolygonAnnotation()        
+                self.m_scene.addItem(poly_item)
+                for i in range(4):
+                    poly_item.addPoint(QtCore.QPointF(data[2*i],data[2*i+1]))
+                poly_item.make_ineditable()
+                self.polygons.append(poly_item)
+                
+                # add texts
+                text_item = self.m_scene.addText(data[8])
+                text_item.setPos(*poly_item.get_top_left_coord())
+                self.texts.append(text_item)
+
+        # check if the user wants to see annotation or not
         self.polygonsVisibility()
         self.textVisibility()
+        #  image is loaded so activate buttons and menu links
         self.updateActions()
 
+    def read_icdar2015_gt(self, fname):
+        """ Return annotations inside the file.
+
+            Annotation consists of lines in the following format
+            x1,y1,x2,y2,x3,y3,x4,y4,Text
+            coordinates start from topleft(x1,y1) going clockwise and
+            ending at bottom left(x4,y4)  
+        """
+
+        df = pd.read_csv(fname, header=None)
+        return df.values.tolist()
 
     def normalSize(self):
+        # TODO
         self.m_view.zoom(1)
 
     def fitToWindow(self):
+        """ Fit image to the screen size """
         self.m_view.fitInView(self.m_scene.image_item, QtCore.Qt.KeepAspectRatio)
         self.m_view.centerOn(self.m_scene.image_item)
 
     def about(self):
         QMessageBox.about(self, "About Image Viewer",
-                "<p>The <b>Image Viewer</b> example shows how to combine "
-                "QLabel and QScrollArea to display an image. QLabel is "
-                "typically used for displaying text, but it can also display "
-                "an image. QScrollArea provides a scrolling view around "
-                "another widget. If the child widget exceeds the size of the "
-                "frame, QScrollArea automatically provides scroll bars.</p>"
-                "<p>The example demonstrates how QLabel's ability to scale "
-                "its contents (QLabel.scaledContents), and QScrollArea's "
-                "ability to automatically resize its contents "
-                "(QScrollArea.widgetResizable), can be used to implement "
-                "zooming and scaling features.</p>"
-                "<p>In addition the example shows how to use QPainter to "
-                "print an image.</p>")
+                "<p>This <b>Annotation Viewer</b> shows how to load "
+                " Images in a directory and the Ground truth "
+                " corresponding to the selected image for ICDAR 2015 dataset.")
 
     def createActions(self):
-        self.openAct = QAction("&Open...", self, shortcut="Ctrl+O",
+        """ Actions for Menus """
+        self.openAct = QAction("&Open Images Dir", self, shortcut="Ctrl+O",
                 triggered=self.open)
+
+        self.gtAct = QAction("Choose Ground &Truth Folder", self, shortcut="Ctrl+T",
+                triggered=self.ground_truth_dir)
 
         self.exitAct = QAction("E&xit", self, shortcut="Ctrl+Q",
                 triggered=self.close)
@@ -329,7 +383,9 @@ class AnnotationWindow(QtWidgets.QMainWindow):
                         Instructions.Polygon_Instruction) )
 
     def createMenus(self):
+        """ Create Menus and place Actions inside them"""
         self.fileMenu = QMenu("&File", self)
+        self.fileMenu.addAction(self.gtAct)
         self.fileMenu.addAction(self.openAct)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.exitAct)
@@ -354,6 +410,7 @@ class AnnotationWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(self.helpMenu)
        
     def updateActions(self):
+        """ Check if some of the actions should be active or not"""
         active = len(self.images)>0
         self.zoomInAct.setEnabled(active)
         self.zoomOutAct.setEnabled(active)
@@ -362,6 +419,7 @@ class AnnotationWindow(QtWidgets.QMainWindow):
         self.polygonAct.setEnabled(active)
 
     def connect_buttons(self):
+        """ Specify which item triggers which functions"""
         self.ui.pushButton_zoomin.clicked.connect(self.m_view.zoomIn)
         self.ui.pushButton_zoomout.clicked.connect(self.m_view.zoomOut)
         self.ui.pushButton_prev.clicked.connect(self.prev_image)
@@ -383,9 +441,6 @@ class AnnotationWindow(QtWidgets.QMainWindow):
         visible = self.ui.checkBox_text.isChecked()
         for text in self.texts:
             text.setVisible(visible)
-
-
-
 
     def imageSelected(self):
         self.img_index = self.ui.listWidget_images.currentRow()
