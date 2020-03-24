@@ -4,6 +4,7 @@ Simple GUI to preview ground truth of ICDAR 2015 dataset through polygons.
 
 # Usage
 Run annotation_and_image_viewer.py. 
+
 1.From the file menu click Choose Ground Truth Folder or use (Ctrl + T) shortcut
 2.From the File menu click Open Images Dir (Ctrl + O). 
 All the files under that folder will be listed inside the listview. And the first image will be opened with its annotations.
